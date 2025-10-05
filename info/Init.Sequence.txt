@@ -1,0 +1,33 @@
+V792
+	sw reset: write16phys(0x1006, 0x80) write16phys(0x1008, 0x80)
+	clearEventCounter: write16phys(0x1040, 0x00)
+	clearData: write16phys(0x1032, 0x04); write16phys(0x1034, 0x04)
+
+	disableOverflowSupp: write16phys(0x1032, 0x08)
+	disableZeroSupp: write16phys(0x1032, 0x10)
+	storeEmpty write16phys(0x1032, 0x1000)
+
+	enableSlide: write16phys(0x1032, 0x80)
+
+	enableNoThreshold:
+          for (int32_t ch=0; ch<63; ch+=2) write16phys(0x1080+ch, 0);
+
+	setI1(255): write16phys(0x1060, 0xFF)
+
+V775N
+	swReset:
+	sw reset: write16phys(0x1006, 0x80) write16phys(0x1008, 0x80)
+	evCntReset write16phys(0x1040, 0x00);
+	dataReset: write16phys(0x1032, 0x04); write16phys(0x1034, 0x04)
+	overSuppression: (ovfl suppr) ? write16phys(0x1034, 0x08) : write16phys(0x1032, 0x08)
+	zeroSuppression: (zero suppr) ? write16phys(0x1034, 0x10) : write16phys(0x1032, 0x10)
+	storeEmpty write16phys(0x1032, 0x1000)
+
+	enableNoThreshold:
+          for (int32_t ch=0; ch<63; ch+=2) write16phys(0x1080+ch, 0);
+
+	if (TDC) setCommon: (commonstop) ? write16phys(0x1032, 0x400) : write16phys(0x1034, 0x400)
+
+	setLSB(35 ps)
+	  uint32_t fsr   = uint32_t(0.5+8900.0/double(ps));
+	  write16phys(0x1060,fsr);

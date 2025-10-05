@@ -1,0 +1,21 @@
+
+Base Address 0x9000000 Model = V792AC
+Serial Number = 1443
+FW Revision = 9.4
+Ctrl Reg = 4880
+QTP board programmed
+
+
+Base Address 0x5000000 Model = V792AC
+Serial Number = 1577
+FW Revision = 9.4
+Ctrl Reg = 4880
+QTP board programmed
+
+
+Base Address 0x8000000 Model = V775NC
+Serial Number = 1533
+FW Revision = 9.4
+Ctrl Reg = 4880
+QTP board programmed
+

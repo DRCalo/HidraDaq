@@ -1,0 +1,26 @@
+ counter 1000000 Triggers 1000000 nT1T2 991254 nPed 832 nBoth 7914 nNone 0 nMultiT1T2 0 nMultiPed 108 nMultiBoth 888 nMultiNone 0 nT1T2+Both 999168 nPed+nBoth 8746 nT1T2+nPed+nBoth 1000000
+totfastgates 0 totphysgates 0 totpedgates 9756
+ioreg.singlehitreadreg 0
+ Pedestal gate counters          : TriggerMask 8746 QDC 0 TDC 473 Scaler 8746
+ Pedestal gate counters (T1T2)   : TriggerMask 7914 QDC 0 TDC 473 Scaler 7914
+ Pedestal gate counters (T1T2bar): TriggerMask 832 QDC 0 TDC 0 Scaler 832
+
+
+ Matrix for ped gates (all):
+ [0] 991254  [1] 0  [2] 0  [3] 8273  [4] 0  [5] 0  [6] 0  [7] 473  [8] 0  [9] 0  [10] 0  [11] 0  [12] 0  [13] 0  [14] 0  [15] 0 
+
+
+ Matrix for ped gates (T1T2):
+ [0] 991254  [1] 0  [2] 0  [3] 7441  [4] 0  [5] 0  [6] 0  [7] 473  [8] 0  [9] 0  [10] 0  [11] 0  [12] 0  [13] 0  [14] 0  [15] 0 
+
+
+ Matrix for ped gates (T1T2bar):
+ [0] 0  [1] 0  [2] 0  [3] 832  [4] 0  [5] 0  [6] 0  [7] 0  [8] 0  [9] 0  [10] 0  [11] 0  [12] 0  [13] 0  [14] 0  [15] 0 
+ Events in QTP[0] 1000000 QTP[1] 1000000 QTP[2] 1000000 QTP[3] 1000000 QTP[4] 1000000 QTP[5] 1000000 
+
+NIM SCALERS 1000000 999168 9756
+
+nMultiPed+nMultiBoth = 108+888 = 996
+	+nPed+nBoth = 996+8746 = 9742
+
+from V560 totpedgates 9756

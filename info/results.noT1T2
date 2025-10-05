@@ -1,0 +1,23 @@
+
+ counter 1000000 Triggers 1000000 nT1T2 0 nPed 1000000 nBoth 0 nNone 0 nMultiT1T2 0 nMultiPed 24 nMultiBoth 0 nMultiNone 0 nT1T2+Both 0 nPed+nBoth 1000000 nT1T2+nPed+nBoth 1000000
+totfastgates 0 totphysgates 0 totpedgates 1000029
+ioreg.singlehitreadreg 0
+ Pedestal gate counters          : TriggerMask 1000000 QDC 0 TDC 0 Scaler 1000000
+ Pedestal gate counters (T1T2)   : TriggerMask 0 QDC 0 TDC 0 Scaler 0
+ Pedestal gate counters (T1T2bar): TriggerMask 1000000 QDC 0 TDC 0 Scaler 1000000
+
+
+ Matrix for ped gates (all):
+ [0] 0  [1] 0  [2] 0  [3] 1000000  [4] 0  [5] 0  [6] 0  [7] 0  [8] 0  [9] 0  [10] 0  [11] 0  [12] 0  [13] 0  [14] 0  [15] 0 
+
+
+ Matrix for ped gates (T1T2):
+ [0] 0  [1] 0  [2] 0  [3] 0  [4] 0  [5] 0  [6] 0  [7] 0  [8] 0  [9] 0  [10] 0  [11] 0  [12] 0  [13] 0  [14] 0  [15] 0 
+
+
+ Matrix for ped gates (T1T2bar):
+ [0] 0  [1] 0  [2] 0  [3] 1000000  [4] 0  [5] 0  [6] 0  [7] 0  [8] 0  [9] 0  [10] 0  [11] 0  [12] 0  [13] 0  [14] 0  [15] 0 
+ Events in QTP[0] 1000000 QTP[1] 1000000 QTP[2] 1000000 QTP[3] 1000000 QTP[4] 1000000 QTP[5] 1000000 
+average time for ioreg.singlehitreadreg 315.172683 - average time for mc.read_MBLT 321.460088 - average time for ioreg.singlehitreadclearreg 1325.605206
+
+NIM SCALERS 1000000 0 1000028

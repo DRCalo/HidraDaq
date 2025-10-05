@@ -1,0 +1,29 @@
+CAENVME_BLTReadCycle
+after while loop ... counter 10987
+average time for ioreg.singlehitreadreg 324.471605 - average time for mc.read_MBLT 324.100564 - average time for ioreg.singlehitreadclearreg 324.186112
+
+CAENVME_MBLTReadCycle
+after while loop ... counter 12330
+average time for ioreg.singlehitreadreg 325.576109 - average time for mc.read_MBLT 325.530857 - average time for ioreg.singlehitreadclearreg 325.830508
+
+CAENVME_FIFOMBLTReadCycle
+after while loop ... counter 16787
+average time for ioreg.singlehitreadreg 324.920360 - average time for mc.read_MBLT 324.877949 - average time for ioreg.singlehitreadclearreg 324.843638
+
+reading V792 Status Register data ready bit
+after while loop ... counter 23776
+average time for ioreg.singlehitreadreg 325.884931 - average time for mc.read_MBLT 325.739917 - average time for ioreg.singlehitreadclearreg 325.830088
+
+with USB-C port
+after while loop ... counter 16200
+average time for ioreg.singlehitreadreg 323.502685 - average time for mc.read_MBLT 323.045923 - average time for ioreg.singlehitreadclearreg 323.552867
+
+using USB-2 port
+after while loop ... counter 15979
+average time for ioreg.singlehitreadreg 323.058761 - average time for mc.read_MBLT 322.898310 - average time for ioreg.singlehitreadclearreg 322.978160
+
+standard USB-3 port
+after while loop ... counter 11913591 Triggers 11913592 nT1T2 3575133 nPed 8407237 nBoth 68778 nT1T2+nPed 11982370 nT1T2+nPed-nBoth 11913592
+average time for ioreg.singlehitreadreg 322.696673 - average time for mc.read_MBLT 322.613117 - average time for ioreg.singlehitreadclearreg 322.621906
+
+

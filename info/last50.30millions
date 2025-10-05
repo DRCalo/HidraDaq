@@ -1,0 +1,35 @@
+regv 8009, trigMask 1, npedgates 0
+header fa012000 geo 1f marker 2 crate 1 zero 0 chans 20 not used 0
+QDC index 1 data f8004099 geo 1f marker 0 chan 0 not used 0 flags 0 val 153
+header fa060100 geo 1f marker 2 crate 6 zero 0 chans 1 not used 0
+TDC index 171 data f81e4833 geo 1f marker 0 chan f not used 0 flags 4 val 2099
+^CSun Sep 28 16:33:32 2025 cntrl_c_handler: sig2
+
+aborting run - counter 30589814
+ Total time 61620 sec, time per event 2014 microsec
+after while loop ... 
+ counter 30589814 Triggers 30589814 nT1T2 21034014 nPed 9065918 nBoth 489882 nNone 0 nMultiT1T2 2 nMultiPed 1994 nMultiBoth 23892 nMultiNone 0 nT1T2+Both 21523896 nPed+nBoth 9555800 nT1T2+nPed+nBoth 30589814
+totfastgates 0 totphysgates 0 totpedgates 9582130
+ioreg.singlehitreadreg 0
+ Pedestal gate counters          : TriggerMask 9555800 QDC 9240022 TDC 21110221 Scaler 9555801
+ Pedestal gate counters (T1T2)   : TriggerMask 489882 QDC 3158633 TDC 18171639 Scaler 489883
+ Pedestal gate counters (T1T2bar): TriggerMask 9065918 QDC 6081389 TDC 2938582 Scaler 9065918
+
+
+ Matrix for ped gates (all):
+ [0] 76411  [1] 0  [2] 1  [3] 163531  [4] 17971724  [5] 0  [6] 0  [7] 3138125  [8] 2985568  [9] 0  [10] 0  [11] 6254082  [12] 310  [13] 0  [14] 0  [15] 62 
+
+
+ Matrix for ped gates (T1T2):
+ [0] 76411  [1] 0  [2] 1  [3] 117525  [4] 17971724  [5] 0  [6] 0  [7] 199602  [8] 2985568  [9] 0  [10] 0  [11] 172752  [12] 310  [13] 0  [14] 0  [15] 3 
+
+
+ Matrix for ped gates (T1T2bar):
+ [0] 0  [1] 0  [2] 0  [3] 46006  [4] 0  [5] 0  [6] 0  [7] 2938523  [8] 0  [9] 0  [10] 0  [11] 6081330  [12] 0  [13] 0  [14] 0  [15] 59 
+ Events in QTP[0] 13812599 QTP[1] 13812599 QTP[2] 13812599 QTP[3] 13812599 QTP[4] 13812599 QTP[5] 13812599 
+average time for ioreg.singlehitreadreg 321.190274 - average time for mc.read_MBLT 324.141182 - average time for ioreg.singlehitreadclearreg 1355.433347
+
+Sun 28 Sep 16:33:32 CEST 2025
+
+SCALER NIM 30589818 T1T2 21523896 PEDESTAL 09582157
+

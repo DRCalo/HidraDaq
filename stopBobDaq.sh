@@ -37,3 +37,4 @@ if [[ $daqPid != "" ]]; then
   echo "please try to kill it with the 'killHidra' alias command"
   sleep 1
 fi
+

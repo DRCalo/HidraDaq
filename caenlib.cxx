@@ -260,7 +260,7 @@ CVErrorCodes myCaen::initQTP ( uint32_t base_addr )
 
    	sernum = (sn0 & 0xFF) + ((sn1 & 0xFF) << 8) + ((sn2 & 0xFF) << 16) + ((sn3 & 0xFF) << 24);
    }
-   printf("Serial Number = %"PRId32"\n", sernum);
+   printf("Serial Number = %d\n", sernum);
 
    printf("FW Revision = %d.%d\n", (fwrev >> 8) & 0xFF, fwrev & 0xFF);
 

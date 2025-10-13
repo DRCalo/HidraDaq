@@ -28,6 +28,7 @@
 class myCaen {
   public:
     myCaen();
+    myCaen ( bool isPCIe );
     ~myCaen();
 
     CVErrorCodes read_reg ( uint32_t reg_addr, uint16_t* val )
@@ -71,6 +72,12 @@ class myCaen {
         // return CAENVME_BLTReadCycle ( m_handle, addr,  buffer, MAX_BLT_SIZE, cvA32_U_BLT, cvD64, howmany );
 	// average time for ioreg.singlehitreadreg 314.060200 - average time for mc.read_MBLT 320.362500 - average time for ioreg.singlehitreadclearreg 1365.706700
       }
+
+    CVErrorCodes multiRead ( uint32_t* address_list, uint32_t* multi_read_data, uint32_t readNbr, CVAddressModifier* am_list, CVDataWidth* dw_list, CVErrorCodes* multi_read_cv )
+      {
+        return CAENVME_MultiRead ( m_handle, address_list, multi_read_data, readNbr, am_list, dw_list, multi_read_cv );
+      }
+
   private:
     int32_t m_handle;
     uint16_t m_xdc_nr;
@@ -90,6 +97,24 @@ myCaen::myCaen () : m_xdc_nr(0)
       exit(-1);
     }
    printf("X Connection is on - handle %d\n", m_handle);
+ }
+
+myCaen::myCaen ( bool isPCIe ) : m_xdc_nr(0)
+ {
+   if ( isPCIe ) {
+   CVBoardTypes ctype ( cvPCIE_A5818_V3718 );
+   // uint32_t pid ( 19853 );
+   uint32_t pid ( 0 );
+   int bdnum ( 0 );
+
+   CVErrorCodes ret = CAENVME_Init2 ( ctype, &pid, bdnum, &m_handle );
+   if ( ret != cvSuccess )
+    {
+      printf("X Can't open VME controller\n");
+      exit(-1);
+    }
+   printf("X Connection is on - handle %d\n", m_handle);
+   }
  }
 
 myCaen::~myCaen ()
@@ -311,7 +336,7 @@ CVErrorCodes myCaen::initQTP ( uint32_t base_addr, uint16_t geo_addr )
 
    	sernum = (sn0 & 0xFF) + ((sn1 & 0xFF) << 8) + ((sn2 & 0xFF) << 16) + ((sn3 & 0xFF) << 24);
    }
-   printf("Serial Number = %"PRId32"\n", sernum);
+   printf("Serial Number = %d\n", sernum);
 
    printf("FW Revision = %d.%d\n", (fwrev >> 8) & 0xFF, fwrev & 0xFF);
 

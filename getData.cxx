@@ -2,6 +2,7 @@
 #include <csignal>
 #include <ctime>
 #include <cstdio>
+#include <cmath>
 #include <sys/time.h>
 
 #include "myV977.h"
@@ -88,6 +89,7 @@ uint16_t wgeoadrs[] = { 4, 5, 6, 7, 8, 9, 10, 11, 12 };
 #define NQTP (sizeof(board)/sizeof(uint32_t))
 #define NQDC (NQTP-1)
 #define TDC_OFFS (NQDC*34)
+#define QDC_LKG_OFFS (4*34)
 
 uint32_t buffer[MAX_BLT_SIZE/sizeof(uint32_t)];
 
@@ -171,7 +173,7 @@ void decodetdc ( uint32_t idx, uint32_t dt, bool* valid, uint32_t* chan, uint32_
     u.d.c >>= 1;
     u.d.c &= 0xf;
     // printf ("TDC index %d data %x geo %x marker %x chan %x not used %d flags %x val %d\n", idx, dt, u.d.g, u.d.m, u.d.c, u.d.u, u.d.f, u.d.v );
-    *valid = (u.d.m == 0) && (u.d.f == 8);
+    *valid = (u.d.m == 0) && (u.d.f == 4);
     *chan = u.d.c;
     *val = u.d.v;
  }
@@ -179,25 +181,83 @@ void decodetdc ( uint32_t idx, uint32_t dt, bool* valid, uint32_t* chan, uint32_
 #define MASKPED (1 << 14)
 #define MASKT1T2 (1 << 13)
 
+/*
+ * list of read operations
+ *     scal4spill.readcounter ( chan4we, &nSpills );     // chan4we = 15, base_address = SCALSPILL_ADDR    base_address+0x10+4*chan4we
+ *     scal4spill.readcounter ( chan4eoe, &nEoEs );      // chan4eoe = 14, base_address = SCALSPILL_ADDR   base_address+0x10+4*chan4eoe
+ *     scal4ped.readcounter ( chan4fast, &nfastgates );  // chan4fast = 0, base_address = SCALPED_ADDR     base_address+0x10+4*chan4fast
+ *     scal4ped.readcounter ( chan4phys, &nphysgates );  // chan4phys = 2, base_address = SCALPED_ADDR     base_address+0x10+4*chan4phys
+ *     scal4ped.readcounter ( chan4peds, &npedgates );   // chan4peds = 4, base_address = SCALPED_ADDR     base_address+0x10+4*chan4peds
+ *     scal4ped.clear();                                 // base_address = SCALPED_ADDR                    base_address+0x50
+ *     ioreg.multihitreadclearreg(&regw);                // base_address = IOREG_ADDR                      base_address+0x18
+ *     ioreg.singlehitreadclearreg(&regv);               // base_address = IOREG_ADDR                      base_address+0x16
+ */
+
+#define SCALSPILL_BASE_ADDR 0x22000000
+#define SCALPED_BASE_ADDR 0x11000000
+#define IOREG_BASE_ADDR 0x01000000
+
+#define SCAL_CHN_REG 0x10
+
+#define SCAL_CLR_REG 0x50
+#define IOR_MLT_RDCLR_REG 0x18
+#define IOR_SNGL_RDCLR_REG 0x16
+
+#define WE_CHN 15
+#define EoE_CHN 14
+#define FASTG_CHN 0
+#define PHY_CHN 2
+#define PED_CHN 4
+
+#define WE_CHN_ADDRS ( SCALSPILL_BASE_ADDR + SCAL_CHN_REG + 4 * WE_CHN )
+#define EoE_CHN_ADDRS ( SCALSPILL_BASE_ADDR + SCAL_CHN_REG + 4 * EoE_CHN )
+#define FASTG_CHN_ADDRS ( SCALPED_BASE_ADDR + SCAL_CHN_REG + 4 * FASTG_CHN )
+#define PHY_CHN_ADDRS ( SCALPED_BASE_ADDR + SCAL_CHN_REG + 4 * PHY_CHN )
+#define PED_CHN_ADDRS ( SCALPED_BASE_ADDR + SCAL_CHN_REG + 4 * PED_CHN )
+
+#define SCAL_CLR_ADDRS ( SCALPED_BASE_ADDR + SCAL_CLR_REG )
+#define IOR_MLT_RDCLR_ADDRS ( IOREG_BASE_ADDR + IOR_MLT_RDCLR_REG )
+#define IOR_SNGL_RDCLR_ADDRS ( IOREG_BASE_ADDR + IOR_SNGL_RDCLR_REG )
+
+uint32_t address_list[] = { WE_CHN_ADDRS, EoE_CHN_ADDRS, FASTG_CHN_ADDRS, PHY_CHN_ADDRS, PED_CHN_ADDRS, SCAL_CLR_ADDRS, IOR_MLT_RDCLR_ADDRS, IOR_SNGL_RDCLR_ADDRS };
+
+#define NREAD (sizeof(address_list)/sizeof(uint32_t))
+
+CVAddressModifier am_list[NREAD];
+CVDataWidth dw_list[NREAD];
+
+void prepareMultiRead ()
+ {
+   for (int j=0; j<NREAD; j++)
+    {
+      am_list[j] = cvA32_U_DATA;
+      dw_list[j] = cvD16;
+    }
+ }
+
 int main ( int argc, char** argv )
  {
   hidraEventHeader heh;
   hidraEventTrailer het(EVENT_END_MARKER);
+
+  uint32_t multi_read_data[NREAD];
+  CVErrorCodes multi_read_cv[NREAD];
 
   time_t startT;
   struct tm* info;
   char rawfilename [256];
 
   uint32_t nTriggers(0), nT1T2(0), nPed(0), nBoth(0), nNone(0), nMultiT1T2(0), nMultiPed(0), nMultiBoth(0), nMultiNone(0), goodPhy(0), goodPed(0), badEvts(0);
-  uint32_t nSpills(0);
+  uint32_t last_spill(0), nSpills(0), nEoEs(0);
+  uint32_t evt_last_spill(0), T1T2_last_spill(0), ped_last_spill(0), both_last_spill(0);
   uint32_t isPedFromMask(0), isPedFromQDC(0), isPedFromTDC(0), isPedFromScaler(0);
   uint32_t pedMatrix[16] = {0};
   uint32_t isPedFromMaskT1T2(0), isPedFromQDCT1T2(0), isPedFromTDCT1T2(0), isPedFromScalerT1T2(0);
   uint32_t pedMatrixT1T2[16] = {0};
   uint32_t isPedFromMaskT1T2bar(0), isPedFromQDCT1T2bar(0), isPedFromTDCT1T2bar(0), isPedFromScalerT1T2bar(0);
   uint32_t pedMatrixT1T2bar[16] = {0};
-  uint64_t u0, u1, u2, u3, u4, u5;
-  double um1(0), um2(0), um3(0);
+  uint64_t u0, u1, u2, u3, u99;
+  double um1(0), um2(0), um3(0), um99(0);
   bool end_run(false);
   uint32_t runnr, numevts, mask4daq;
   uint16_t datasourcemask, actualmask;
@@ -215,7 +275,7 @@ int main ( int argc, char** argv )
   actualmask = (takeboth) ? MASKPED : datasourcemask;
 
   // instance of class myCaen for VME access via A4818 (id 49086) + V3718
-  myCaen mc;
+  myCaen mc ( true );
 
   // instance of V977 I/O reg
   myV977 ioreg ( &mc, 0x01000000 );
@@ -224,9 +284,9 @@ int main ( int argc, char** argv )
   uint16_t trigMask, regv, regw;
   uint32_t nfastgates(0), nphysgates(0), npedgates(0);
   uint32_t totfastgates(0), totphysgates(0), totpedgates(0);
-  const uint32_t chan4fast(0), chan4phys(2), chan4peds(4), chan4we(15);
+  const uint32_t chan4fast(0), chan4phys(2), chan4peds(4), chan4we(15), chan4eoe(14);
 
-  FILE* rawfile;
+  FILE* rawfile, * debuglogfile;
 
   // instance of V560 scaler for ped gate counting event by event
   myV560 scal4ped ( &mc, 0x11000000 );
@@ -299,6 +359,8 @@ int main ( int argc, char** argv )
 
   mc.getLsb ( board[NQTP-1], &tdclsb );
 
+  printf ( " V775N TDC lsb %d\n", tdclsb );
+
   // set RESET MODE for all the boards`
   // if ( mc.write_reg ( 0xAA001006, 0x80 ) != 0 ) goto QuitProgram;
 
@@ -315,22 +377,25 @@ int main ( int argc, char** argv )
   startT = time ( NULL );
   info = localtime ( & startT );
 
-  if (runnr == 0)
-   {
-     sprintf ( rawfilename, "/home/hidra/TB2025data/RawData-%.4d.%.2d.%.2d-%.2d.%.2d.%.2d.txt", info->tm_year+1900, info->tm_mon, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec );
-     printf ( "Rawfile is /home/hidra/TB2025data/RawDaaa-%.4d.%.2d.%.2d-%.2d.%.2d.%.2d.txt", info->tm_year+1900, info->tm_mon, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec );
-   }
-  else
-   {
-     sprintf ( rawfilename, "/home/hidra/TB2025data/RawData-%.4d.%.2d.%.2d-%.2d.%.2d.%.2d.run%d.txt", info->tm_year+1900, info->tm_mon, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec, runnr );
-     printf ( "Rawfile is /home/hidra/TB2025data/RawDaaa-%.4d.%.2d.%.2d-%.2d.%.2d.%.2d.run%d.txt", info->tm_year+1900, info->tm_mon, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec, runnr );
-   }
+  (runnr == 0)
+       ?  sprintf ( rawfilename, "/home/hidra/TB2025data/RawData-%.4d.%.2d.%.2d-%.2d.%.2d.%.2d.txt", info->tm_year+1900, info->tm_mon, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec )
+       : sprintf ( rawfilename, "/home/hidra/TB2025data/RawData-%.4d.%.2d.%.2d-%.2d.%.2d.%.2d.run%d.txt", info->tm_year+1900, info->tm_mon, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec, runnr );
+
+  printf ( "Run number %d raw data file %s\n", runnr, rawfilename );
 
   rawfile = fopen ( rawfilename, "w" );
   if (rawfile == NULL) {
 	  printf ( " can't open file for saving data, going to send data to stdout\n" );
 	  rawfile = stdout;
   }
+
+  debuglogfile = fopen ( "/home/hidra/working/debuglogfile.txt", "a" );
+  if (debuglogfile == NULL) {
+	  printf ( " can't open debug file, going to use stderr\n" );
+	  debuglogfile = stderr;
+  }
+
+  prepareMultiRead();
 
   // reset V560 scaler contents
   scal4ped.clear();
@@ -346,35 +411,80 @@ int main ( int argc, char** argv )
     bool isT1T2, pedFromMask, pedFromQDC, pedFromTDC, pedFromScaler;
     uint16_t pedTagMask;
     uint32_t sec, usec;
+    CVErrorCodes cv;
 
     u0 = uTime();
     ioreg.singlehitreadreg(&regv);
     end_run = stop_run;
+    last_spill = nSpills;
     if (regv & 0x8000)
      {
-       scal4spill.readcounter ( chan4we, &nSpills );
-       nTriggers ++;
-
        time_now ( &sec, &usec);
 
        trigMask = regv & 3;
-       printf(" nTriggers %d nSpills  %d trigMask %d\n", nTriggers, nSpills, trigMask );
+
        u1 = uTime();
        um1 += u1 - u0;
+
        mc.read_MBLT ( 0xAA000000, buffer, &howmany );
+
        u2 = uTime();
        um2 += u2 - u1;
+
        howmany /= sizeof(uint32_t);
-       isT1T2 = (trigMask & 1);
-       (trigMask == 1) ? nT1T2 ++ : (trigMask == 2) ? nPed ++ : (trigMask == 3) ? nBoth ++ : nNone ++;
-       pedFromMask = (trigMask & 2);
+
+       // cv = mc.multiRead( address_list, multi_read_data, 5, am_list, dw_list, multi_read_cv );
+
+       // if (cv != cvSuccess) printf ( " error from multiRead %d\n", cv );
 
        // scal4ped.readcounter ( chan4fast, &nfastgates );
        // scal4ped.readcounter ( chan4phys, &nphysgates );
        scal4ped.readcounter ( chan4peds, &npedgates );
-       pedFromScaler = (npedgates > 0);
+
+       scal4spill.readcounter ( chan4we, &nSpills );
+       // scal4spill.readcounter ( chan4eoe, &nEoEs );
+
+       ioreg.multihitreadclearreg(&regw);
 
        scal4ped.clear();
+
+       ioreg.singlehitreadclearreg(&regv);
+
+       pedFromScaler = (npedgates > 0);
+
+       if ( nSpills != last_spill ) {
+	 time_t timestr = time(NULL);
+	 char * stime = ctime(&timestr);
+	 stime[24] = 0;
+
+         printf ( " %s run %d events %d spill %d - this spill: events %d T1T2 %d ped %d both %d\n",
+                  stime, runnr, nTriggers, last_spill,
+                  (nTriggers-evt_last_spill), (nT1T2-T1T2_last_spill), (nPed-ped_last_spill),
+		  (nBoth-both_last_spill) );
+
+         last_spill = nSpills;
+         evt_last_spill = nTriggers;
+         T1T2_last_spill = nT1T2;
+	 ped_last_spill = nPed;
+	 both_last_spill = nBoth;
+
+       }
+
+       nTriggers ++;
+
+       isT1T2 = (trigMask & 1);
+       (trigMask == 1) ? nT1T2 ++ : (trigMask == 2) ? nPed ++ : (trigMask == 3) ? nBoth ++ : nNone ++;
+       pedFromMask = (trigMask & 2);
+
+       u3 = uTime();
+       um3 += u3-u2;
+
+       if (regw) (trigMask == 1) ? nMultiT1T2 ++ : (trigMask == 2) ? nMultiPed ++ : (trigMask == 3) ? nMultiBoth ++ : nMultiNone ++;
+       if (0) {
+       printf ( "run %d spill %d evt.s %d trig. mask %d ", runnr, nSpills, nTriggers, trigMask );
+       printf ( "singlehitreadclearreg 0x%x multihitreadclearreg 0x%x ped. gates %d ", regv, regw, npedgates );
+       printf ( "T1T2 %d pedestal %d both %d\n", nT1T2, nPed, nBoth );
+       }
 
        if (nTriggers == numevts) stop_run = true;
 
@@ -395,18 +505,8 @@ int main ( int argc, char** argv )
 	 }
        }
 
-       ioreg.multihitreadclearreg(&regw);
-       ioreg.singlehitreadclearreg(&regv);
-
-       u3 = uTime();
-       um3 += u3-u2;
-
-       if (regw) (trigMask == 1) ? nMultiT1T2 ++ : (trigMask == 2) ? nMultiPed ++ : (trigMask == 3) ? nMultiBoth ++ : nMultiNone ++;
-       if (regw) printf(" regv %x , regw %x \n", regv, regw);
-       printf ( "regv %x, trigMask %d, npedgates %d\n", regv, trigMask, npedgates );
-
-       decodehead ( buffer[0], &nchans );
-       decodeqdc ( 4, buffer[1+15], &valid, &ch, &val );    // QDC # 4 ch 15 -> end marker ped clock
+       decodehead ( buffer[QDC_LKG_OFFS], &nchans );
+       decodeqdc ( 4, buffer[QDC_LKG_OFFS+1+15], &valid, &ch, &val );    // QDC # 4 ch 15 -> end marker ped clock
        if (valid) pedFromQDC = (val > 1000);
 
        toapedck = toafastg = ch = 0;
@@ -416,16 +516,16 @@ int main ( int argc, char** argv )
           for (int j=0; j<nchans; j ++)
 	   {
 	     uint32_t xt;
-	     decodetdc ( NQDC, buffer[TDC_OFFS+j], &valid, &ch, &xt );
+	     decodetdc ( NQDC, buffer[TDC_OFFS*1+j], &valid, &ch, &xt );
 	     if (ch == 8)
 	      {
 	        if (valid) toapedck = double(xt * tdclsb) / 1000;
-                printf ( " nchans %d valid %d ch %d val %d ToA ped ck EM %f ns\n", nchans, valid, ch, xt, toapedck );
+                fprintf ( debuglogfile, " event %d TDC_OFFS+j %d nchans %d valid %d ch %d val %d ToA ped ck EM %f ns\n", nTriggers, TDC_OFFS+j, nchans, valid, ch, xt, toapedck );
 	      }
 	     else if (ch == 15)
 	      {
 	        if (valid) toafastg = double(xt * tdclsb) / 1000;
-                printf ( " nchans %d valid %d ch %d val %d ToA fast gate EM %f ns\n", nchans, valid, ch, xt, toafastg );
+                fprintf ( debuglogfile, " event %d TDC_OFFS+j %d nchans %d valid %d ch %d val %d ToA fast gate EM %f ns\n", nTriggers, TDC_OFFS+j, nchans, valid, ch, xt, toafastg );
 	      }
 	   }
 	}
@@ -504,8 +604,6 @@ int main ( int argc, char** argv )
        }
        heh.headerEndMarker = HEADER_END_MARKER;
 
-       printf ( "\nspill %d total events %d T1T2 %d pedestal %d both %d\n\n", nSpills, nTriggers, nT1T2, nPed, nBoth );
-
        {
 	 uint32_t heh_a [ HEH_NW ];
 	 memcpy ( heh_a, &heh, HEH_SZ );
@@ -514,11 +612,13 @@ int main ( int argc, char** argv )
 
        for (int i=0; i<howmany; i++) fprintf ( rawfile, "%x ", buffer[i] );
        fprintf ( rawfile, "%x\n", het );
+
        fflush ( rawfile );
 
-
-       printf ( "\n\n" );
        fflush ( stdout );
+
+       u99 = uTime();
+       um99 += u99-u0;
 
        loopcounter ++;
      }
@@ -567,12 +667,19 @@ int main ( int argc, char** argv )
   um1 /= nTriggers;
   um2 /= nTriggers;
   um3 /= nTriggers;
+  um99 /= nTriggers;
 
-  printf ( "average time for ioreg.singlehitreadreg %lf - ", um1 );
-  printf ( "average time for mc.read_MBLT %lf - ", um2 );
-  printf ( "average time for ioreg.singlehitreadclearreg %lf\n\n", um3 );
+  printf ( " <singlehitreadreg time> %lf - ", round(um1) );
+  printf ( "<MBLT time> %lf - ", round(um2) );
+  printf ( "<all the rest> %lf - ", round(um3) );
+  printf ( "<handling one event> %lf\n", round(um99) );
   system ( "date" );
   printf ( "\n" );
+
+  fflush ( stdout );
+
+  if ((debuglogfile != NULL) && (debuglogfile != stderr)) fclose ( debuglogfile );
+
 
 QuitProgram:
 

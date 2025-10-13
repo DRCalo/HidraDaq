@@ -241,7 +241,7 @@ uint32_t initQTP ( int32_t handle, uint32_t BaseAddress )
         if (sernum == UINT32_C(0xFFFF)) {
                 sernum = (read_reg(handle,BaseAddress,0x8EF6) & 0xFF) + ((read_reg(handle,BaseAddress,0x8EF4) & 0xFF) << 8) + ((read_reg(handle,BaseAddress,0x8EF2) & 0xFF) << 16); + ((read_reg(handle,BaseAddress,0x8EF0) & 0xFF) << 24);
         }
-        printf("Serial Number = %"PRId32"\n", sernum);
+        printf("Serial Number = %d\n", sernum);
 
         printf("FW Revision = %d.%d\n", (fwrev >> 8) & 0xFF, fwrev & 0xFF);
 

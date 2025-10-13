@@ -314,6 +314,7 @@ int main ( int argc, char** argv )
 
   startT = time ( NULL );
   info = localtime ( & startT );
+  info->tm_mon ++;
 
   if (runnr == 0)
    {

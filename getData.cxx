@@ -376,6 +376,7 @@ int main ( int argc, char** argv )
 
   startT = time ( NULL );
   info = localtime ( & startT );
+  info->tm_mon ++;
 
   (runnr == 0)
        ?  sprintf ( rawfilename, "/home/hidra/TB2025data/RawData-%.4d.%.2d.%.2d-%.2d.%.2d.%.2d.txt", info->tm_year+1900, info->tm_mon, info->tm_mday, info->tm_hour, info->tm_min, info->tm_sec )
